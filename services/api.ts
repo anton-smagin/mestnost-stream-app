@@ -1,4 +1,6 @@
 import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import camelcaseKeys from 'camelcase-keys';
+import snakecaseKeys from 'snakecase-keys';
 import { type ApiResponse } from '@/types';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -35,13 +37,25 @@ apiClient.interceptors.request.use(
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
+    if (config.data && typeof config.data === 'object') {
+      config.data = snakecaseKeys(config.data as Record<string, unknown>, { deep: true });
+    }
     return config;
   },
   (error: AxiosError) => Promise.reject(error),
 );
 
-// ─── Response Interceptor ────────────────────────────────────────────────────
+// ─── Response Interceptors ───────────────────────────────────────────────────
 
+// Transform snake_case keys from the API into camelCase for TypeScript types.
+apiClient.interceptors.response.use((response) => {
+  if (response.data && typeof response.data === 'object') {
+    response.data = camelcaseKeys(response.data as Record<string, unknown>, { deep: true });
+  }
+  return response;
+});
+
+// Handle API-level errors after key transformation.
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiResponse<unknown>>) => {

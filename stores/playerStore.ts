@@ -39,7 +39,7 @@ async function fetchStreamUrl(trackId: string): Promise<string> {
 
 async function recordListenHistory(trackId: string): Promise<void> {
   try {
-    await apiPost('/api/v1/me/history', { track_id: trackId });
+    await apiPost('/api/v1/me/history', { trackId });
   } catch {
     // Non-critical — swallow silently
   }

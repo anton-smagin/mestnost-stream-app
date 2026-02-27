@@ -60,7 +60,7 @@ export interface Track {
   trackNumber: number;
   durationSeconds: number;
   albumId: string;
-  fileKey: string;
+  fileKey: string | null;
   createdAt: string;
 }
 

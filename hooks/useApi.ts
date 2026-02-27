@@ -188,12 +188,7 @@ export function useLogin() {
 export function useRegister() {
   return useMutation({
     mutationFn: async (credentials: RegisterCredentials) => {
-      const payload = {
-        email: credentials.email,
-        password: credentials.password,
-        display_name: credentials.displayName,
-      };
-      const response = await apiPost<User>('/api/v1/auth/register', payload);
+      const response = await apiPost<User>('/api/v1/auth/register', credentials);
       if (!response.data) throw new Error('Registration failed');
       return response.data;
     },
@@ -209,7 +204,7 @@ export function useLikeTrack() {
       await apiPost(`/api/v1/me/likes/${trackId}`);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.likes(1) });
+      void queryClient.invalidateQueries({ queryKey: ['me', 'likes'] });
     },
   });
 }
@@ -221,7 +216,7 @@ export function useUnlikeTrack() {
       await apiDelete(`/api/v1/me/likes/${trackId}`);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.likes(1) });
+      void queryClient.invalidateQueries({ queryKey: ['me', 'likes'] });
     },
   });
 }
@@ -232,7 +227,7 @@ export function useRecordListen() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (trackId: string) => {
-      await apiPost('/api/v1/me/history', { track_id: trackId });
+      await apiPost('/api/v1/me/history', { trackId });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.history(1) });
@@ -248,7 +243,7 @@ export function useCreatePlaylist() {
     mutationFn: async (input: { name: string; isPublic?: boolean }) => {
       const response = await apiPost<Playlist>('/api/v1/playlists/', {
         name: input.name,
-        is_public: input.isPublic ?? false,
+        isPublic: input.isPublic ?? false,
       });
       if (!response.data) throw new Error('Failed to create playlist');
       return response.data;
@@ -265,7 +260,7 @@ export function useUpdatePlaylist() {
     mutationFn: async (input: { id: string; name?: string; isPublic?: boolean }) => {
       const response = await apiPut<Playlist>(`/api/v1/playlists/${input.id}`, {
         name: input.name,
-        is_public: input.isPublic,
+        isPublic: input.isPublic,
       });
       if (!response.data) throw new Error('Failed to update playlist');
       return response.data;
@@ -294,7 +289,7 @@ export function useAddTrackToPlaylist() {
   return useMutation({
     mutationFn: async (input: { playlistId: string; trackId: string }) => {
       await apiPost(`/api/v1/playlists/${input.playlistId}/tracks`, {
-        track_id: input.trackId,
+        trackId: input.trackId,
       });
     },
     onSuccess: (_data, variables) => {
