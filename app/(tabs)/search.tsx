@@ -15,6 +15,7 @@ import { ArtistCard } from '@/components/ArtistCard';
 import { AlbumCard } from '@/components/AlbumCard';
 import { TrackRow } from '@/components/TrackRow';
 import { TrackRowSkeleton, ArtistCardSkeleton, AlbumCardSkeleton } from '@/components/Skeleton';
+import { usePlayerStore } from '@/stores/playerStore';
 import { type TrackSummary } from '@/types';
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -22,6 +23,7 @@ import { type TrackSummary } from '@/types';
 export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebounce(query, 300);
+  const { playTrack } = usePlayerStore();
 
   const {
     data: results,
@@ -38,8 +40,10 @@ export default function SearchScreen() {
       results.albums.length > 0 ||
       results.tracks.length > 0);
 
-  const handleTrackPress = (_track: TrackSummary) => {
-    // Phase 6: connect to player
+  const handleTrackPress = (track: TrackSummary) => {
+    // Play the tapped track; use the full results track list as the queue
+    const trackQueue = results?.tracks ?? [track];
+    void playTrack(track, trackQueue);
   };
 
   return (

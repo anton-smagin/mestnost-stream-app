@@ -14,7 +14,19 @@ import { TrackRow } from '@/components/TrackRow';
 import { ErrorState } from '@/components/ErrorState';
 import { EmptyState } from '@/components/EmptyState';
 import { TrackRowSkeleton, Skeleton } from '@/components/Skeleton';
+import { usePlayerStore } from '@/stores/playerStore';
 import { type TrackSummary } from '@/types';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -22,6 +34,7 @@ export default function PlaylistScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { data: playlist, isLoading, error, refetch } = usePlaylist(id ?? '');
+  const { playTrack } = usePlayerStore();
 
   const tracks: TrackSummary[] = playlist?.tracks
     ? [...playlist.tracks]
@@ -30,15 +43,18 @@ export default function PlaylistScreen() {
     : [];
 
   const handlePlayAll = () => {
-    // Phase 6: connect to player
+    if (tracks.length === 0) return;
+    void playTrack(tracks[0], tracks);
   };
 
   const handleShuffle = () => {
-    // Phase 6: connect to player with shuffle
+    if (tracks.length === 0) return;
+    const shuffled = shuffleArray(tracks);
+    void playTrack(shuffled[0], shuffled);
   };
 
-  const handleTrackPress = (_track: TrackSummary) => {
-    // Phase 6: connect to player
+  const handleTrackPress = (track: TrackSummary) => {
+    void playTrack(track, tracks);
   };
 
   return (

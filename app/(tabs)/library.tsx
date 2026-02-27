@@ -15,6 +15,7 @@ import { TrackRow } from '@/components/TrackRow';
 import { ErrorState } from '@/components/ErrorState';
 import { EmptyState } from '@/components/EmptyState';
 import { TrackRowSkeleton } from '@/components/Skeleton';
+import { usePlayerStore } from '@/stores/playerStore';
 import { type TrackSummary } from '@/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -90,9 +91,12 @@ function PlaylistsTab() {
 
 function LikedSongsTab() {
   const { data: likes, isLoading, error, refetch } = useLikes();
+  const { playTrack } = usePlayerStore();
 
-  const handleTrackPress = (_track: TrackSummary) => {
-    // Phase 6: connect to player
+  const likedTracks: TrackSummary[] = likes?.map((entry) => entry.track) ?? [];
+
+  const handleTrackPress = (track: TrackSummary) => {
+    void playTrack(track, likedTracks);
   };
 
   if (error && !isLoading) {
@@ -137,9 +141,11 @@ function LikedSongsTab() {
 
 function HistoryTab() {
   const { data: history, isLoading, error, refetch } = useHistory();
+  const { playTrack } = usePlayerStore();
 
-  const handleTrackPress = (_track: TrackSummary) => {
-    // Phase 6: connect to player
+  const handleTrackPress = (track: TrackSummary) => {
+    // History plays single track without queue context
+    void playTrack(track);
   };
 
   if (error && !isLoading) {

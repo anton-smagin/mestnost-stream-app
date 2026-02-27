@@ -14,6 +14,7 @@ import { useAlbum } from '@/hooks/useApi';
 import { TrackRow } from '@/components/TrackRow';
 import { ErrorState } from '@/components/ErrorState';
 import { Skeleton, TrackRowSkeleton } from '@/components/Skeleton';
+import { usePlayerStore } from '@/stores/playerStore';
 import { type TrackSummary } from '@/types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -27,27 +28,40 @@ function formatReleaseDate(dateStr: string | null): string {
   }
 }
 
+function shuffleArray<T>(arr: T[]): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AlbumScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { data: album, isLoading, error, refetch } = useAlbum(id ?? '');
+  const { playTrack } = usePlayerStore();
 
   const tracks: TrackSummary[] = album?.tracks
     ? [...album.tracks].sort((a, b) => a.trackNumber - b.trackNumber)
     : [];
 
   const handlePlayAll = () => {
-    // Phase 6: connect to player
+    if (tracks.length === 0) return;
+    void playTrack(tracks[0], tracks);
   };
 
   const handleShuffle = () => {
-    // Phase 6: connect to player with shuffle
+    if (tracks.length === 0) return;
+    const shuffled = shuffleArray(tracks);
+    void playTrack(shuffled[0], shuffled);
   };
 
-  const handleTrackPress = (_track: TrackSummary) => {
-    // Phase 6: connect to player
+  const handleTrackPress = (track: TrackSummary) => {
+    void playTrack(track, tracks);
   };
 
   return (

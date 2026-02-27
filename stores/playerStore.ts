@@ -1,10 +1,22 @@
 import { create } from 'zustand';
-import { Audio } from 'expo-av';
-import { type Track, type RepeatMode } from '@/types';
-import { apiGet } from '@/services/api';
+import { Audio, type AVPlaybackStatus } from 'expo-av';
+import { type TrackSummary, type RepeatMode } from '@/types';
+import { apiGet, apiPost } from '@/services/api';
 import { type StreamUrlResponse } from '@/types';
 
+// ─── Configure Audio Mode ─────────────────────────────────────────────────────
+//
+// Called once at module load. Enables background playback and silent mode.
+
+void Audio.setAudioModeAsync({
+  playsInSilentModeIOS: true,
+  staysActiveInBackground: true,
+  shouldDuckAndroid: true,
+});
+
 // ─── Internal Audio Instance ─────────────────────────────────────────────────
+//
+// Kept outside Zustand to avoid serialisation issues.
 
 let soundInstance: Audio.Sound | null = null;
 
@@ -25,11 +37,19 @@ async function fetchStreamUrl(trackId: string): Promise<string> {
   return response.data.url;
 }
 
+async function recordListenHistory(trackId: string): Promise<void> {
+  try {
+    await apiPost('/api/v1/me/history', { track_id: trackId });
+  } catch {
+    // Non-critical — swallow silently
+  }
+}
+
 // ─── State Shape ─────────────────────────────────────────────────────────────
 
-interface PlayerStore {
-  currentTrack: Track | null;
-  queue: Track[];
+export interface PlayerStore {
+  currentTrack: TrackSummary | null;
+  queue: TrackSummary[];
   currentIndex: number;
   isPlaying: boolean;
   isLoading: boolean;
@@ -39,17 +59,16 @@ interface PlayerStore {
   isShuffle: boolean;
 
   // Actions
-  playTrack: (track: Track, queue?: Track[]) => Promise<void>;
+  playTrack: (track: TrackSummary, queue?: TrackSummary[]) => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
   next: () => Promise<void>;
   previous: () => Promise<void>;
   seekTo: (ms: number) => Promise<void>;
-  addToQueue: (track: Track) => void;
+  addToQueue: (track: TrackSummary) => void;
   setRepeatMode: (mode: RepeatMode) => void;
   toggleShuffle: () => void;
-  updatePosition: (positionMs: number, durationMs: number) => void;
-  setLoading: (isLoading: boolean) => void;
+  stop: () => Promise<void>;
 }
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -67,12 +86,13 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
   playTrack: async (track, queue) => {
     const resolvedQueue = queue ?? [track];
-    const index = resolvedQueue.findIndex((t) => t.id === track.id);
+    const rawIndex = resolvedQueue.findIndex((t) => t.id === track.id);
+    const index = rawIndex >= 0 ? rawIndex : 0;
 
     set({
       currentTrack: track,
       queue: resolvedQueue,
-      currentIndex: Math.max(0, index),
+      currentIndex: index,
       isLoading: true,
       positionMs: 0,
       durationMs: 0,
@@ -81,28 +101,27 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     await unloadCurrentSound();
 
     try {
-      // Fetch presigned stream URL from the backend
       const streamUrl = await fetchStreamUrl(track.id);
 
-      await Audio.setAudioModeAsync({
-        staysActiveInBackground: true,
-        playsInSilentModeIOS: true,
-      });
+      const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
+        if (!status.isLoaded) return;
+
+        set({
+          positionMs: status.positionMillis,
+          durationMs: status.durationMillis ?? 0,
+          isPlaying: status.isPlaying,
+        });
+
+        if (status.didJustFinish) {
+          void recordListenHistory(track.id);
+          void get().next();
+        }
+      };
 
       const { sound, status } = await Audio.Sound.createAsync(
         { uri: streamUrl },
         { shouldPlay: true },
-        (playbackStatus) => {
-          if (!playbackStatus.isLoaded) return;
-          set({
-            positionMs: playbackStatus.positionMillis,
-            durationMs: playbackStatus.durationMillis ?? 0,
-            isPlaying: playbackStatus.isPlaying,
-          });
-          if (playbackStatus.didJustFinish) {
-            void get().next();
-          }
-        },
+        onPlaybackStatusUpdate,
       );
 
       soundInstance = sound;
@@ -113,7 +132,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
         isLoading: false,
       });
     } catch (error) {
-      console.error('Failed to load track:', error);
+      console.warn('Failed to load track:', error);
       set({ isLoading: false, isPlaying: false });
       // Attempt to advance to next track on error
       void get().next();
@@ -122,32 +141,51 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
   pause: async () => {
     if (soundInstance) {
-      await soundInstance.pauseAsync();
+      try {
+        await soundInstance.pauseAsync();
+      } catch {
+        // Ignore
+      }
     }
     set({ isPlaying: false });
   },
 
   resume: async () => {
     if (soundInstance) {
-      await soundInstance.playAsync();
+      try {
+        await soundInstance.playAsync();
+      } catch {
+        // Ignore
+      }
     }
     set({ isPlaying: true });
   },
 
   next: async () => {
-    const { queue, currentIndex, repeatMode } = get();
+    const { queue, currentIndex, repeatMode, isShuffle } = get();
     if (queue.length === 0) return;
 
     let nextIndex: number;
 
     if (repeatMode === 'one') {
       nextIndex = currentIndex;
+    } else if (isShuffle) {
+      // Pick a random index different from current (if queue has more than 1 track)
+      if (queue.length === 1) {
+        nextIndex = 0;
+      } else {
+        let randomIndex: number;
+        do {
+          randomIndex = Math.floor(Math.random() * queue.length);
+        } while (randomIndex === currentIndex);
+        nextIndex = randomIndex;
+      }
     } else if (currentIndex < queue.length - 1) {
       nextIndex = currentIndex + 1;
     } else if (repeatMode === 'all') {
       nextIndex = 0;
     } else {
-      // End of queue
+      // End of queue — stop
       set({ isPlaying: false });
       return;
     }
@@ -171,7 +209,11 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
   seekTo: async (ms) => {
     if (soundInstance) {
-      await soundInstance.setPositionAsync(ms);
+      try {
+        await soundInstance.setPositionAsync(ms);
+      } catch {
+        // Ignore
+      }
     }
     set({ positionMs: ms });
   },
@@ -183,7 +225,16 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
   toggleShuffle: () => set((state) => ({ isShuffle: !state.isShuffle })),
 
-  updatePosition: (positionMs, durationMs) => set({ positionMs, durationMs }),
-
-  setLoading: (isLoading) => set({ isLoading }),
+  stop: async () => {
+    await unloadCurrentSound();
+    set({
+      currentTrack: null,
+      queue: [],
+      currentIndex: 0,
+      isPlaying: false,
+      isLoading: false,
+      positionMs: 0,
+      durationMs: 0,
+    });
+  },
 }));

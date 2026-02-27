@@ -1,5 +1,10 @@
+import { View, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, Search, Library, User } from 'lucide-react-native';
+import { BottomTabBar, type BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { MiniPlayer } from '@/components/MiniPlayer';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const TAB_ICON_SIZE = 24;
 
@@ -18,9 +23,26 @@ const TAB_BAR_LABEL_STYLE = {
   marginTop: 4,
 } as const;
 
+// ─── Custom Tab Bar ───────────────────────────────────────────────────────────
+//
+// Renders the MiniPlayer above the native bottom tab bar so it stays pinned
+// to the bottom of the screen while the tabs remain accessible.
+
+function CustomTabBar(props: BottomTabBarProps) {
+  return (
+    <View style={styles.tabBarWrapper}>
+      <MiniPlayer />
+      <BottomTabBar {...props} />
+    </View>
+  );
+}
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
+
 export default function TabsLayout() {
   return (
     <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         tabBarStyle: TAB_BAR_STYLE,
@@ -68,3 +90,11 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  tabBarWrapper: {
+    backgroundColor: '#1a1a1a',
+  },
+});

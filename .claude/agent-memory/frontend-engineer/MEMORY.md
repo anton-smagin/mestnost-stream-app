@@ -33,8 +33,9 @@
 
 ### Key Type Distinctions
 - `TrackSummary`: minimal track embedded in albums/playlists (no fileKey/streamUrl)
-- `Track`: full track with fileKey for streaming — used by playerStore only
+- `Track`: full track with fileKey for streaming — NOT used in playerStore (uses TrackSummary)
 - TrackRow component uses `TrackSummary` (not Track)
+- playerStore uses `TrackSummary` for queue/currentTrack — stream URL fetched inside store by track.id
 
 ### Component Props Summary
 - `TrackRow`: `track: TrackSummary`, `index?`, `onPress?`, `artistName?`, `coverImageUrl?`
@@ -50,10 +51,16 @@
 - `router.replace('/(auth)/sign-in')` — after logout
 - `useLocalSearchParams<{ id: string }>()` — for route params on detail screens
 
-### Phase 6 TODOs (player integration)
-- TrackRow `onPress` handlers are no-ops: connect to `usePlayerStore().playTrack()`
-- Album/Playlist "Play All" / "Shuffle" buttons: connect to player store
-- MiniPlayer: needs cover art from album data
+### Phase 6 — Player Integration (COMPLETED)
+- playerStore: `playTrack(track, queue?)`, `pause/resume/next/previous/seekTo/stop/addToQueue/setRepeatMode/toggleShuffle`
+- `RepeatMode` = `'none' | 'all' | 'one'` (NOT 'off')
+- playerStore uses `TrackSummary` (not `Track`). Stream URL fetched via `apiGet<StreamUrlResponse>`
+- Listen history recorded via `apiPost('/api/v1/me/history', { track_id })` on `didJustFinish`
+- Tab layout: `tabBar` prop with `<CustomTabBar>` wraps `<MiniPlayer />` + `<BottomTabBar />` from `@react-navigation/bottom-tabs`
+- MiniPlayer: renders `null` when no currentTrack; shows progress bar via positionMs/durationMs ratio
+- Player screen: full-screen modal with SeekBar (PanResponder-based), shuffle/repeat/prev/play/next controls
+- Shuffle logic: in-store random index picker (not queue pre-shuffle). Shuffle "Play" button pre-shuffles with `shuffleArray` helper
+- app.json: `ios.infoPlist.UIBackgroundModes: ["audio"]` added for background playback
 
 ### Verification Commands
 ```bash

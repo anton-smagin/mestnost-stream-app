@@ -7,9 +7,19 @@ import { usePlayerStore } from '@/stores/playerStore';
 
 export function MiniPlayer() {
   const router = useRouter();
-  const { currentTrack, isPlaying, pause, resume, next } = usePlayerStore();
+  const {
+    currentTrack,
+    isPlaying,
+    positionMs,
+    durationMs,
+    pause,
+    resume,
+    next,
+  } = usePlayerStore();
 
   if (!currentTrack) return null;
+
+  const progress = durationMs > 0 ? Math.min(positionMs / durationMs, 1) : 0;
 
   const handlePlayPause = async () => {
     if (isPlaying) {
@@ -28,48 +38,77 @@ export function MiniPlayer() {
   };
 
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={handleOpenPlayer}
-      activeOpacity={0.9}
-    >
-      <View style={[styles.artwork, styles.artworkPlaceholder]} />
-
-      <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={1}>
-          {currentTrack.title}
-        </Text>
-        <Text style={styles.subtitle} numberOfLines={1}>
-          Track {currentTrack.trackNumber}
-        </Text>
+    <View style={styles.wrapper}>
+      {/* Thin progress bar at very top */}
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
       </View>
 
-      <View style={styles.controls}>
-        <TouchableOpacity onPress={handlePlayPause} style={styles.controlButton}>
-          {isPlaying ? (
-            <Pause size={20} color="#ffffff" fill="#ffffff" />
-          ) : (
-            <Play size={20} color="#ffffff" fill="#ffffff" />
-          )}
-        </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.container}
+        onPress={handleOpenPlayer}
+        activeOpacity={0.9}
+      >
+        {/* Artwork placeholder */}
+        <View style={[styles.artwork, styles.artworkPlaceholder]} />
 
-        <TouchableOpacity onPress={handleNext} style={styles.controlButton}>
-          <SkipForward size={20} color="#ffffff" />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
+        {/* Track info */}
+        <View style={styles.info}>
+          <Text style={styles.title} numberOfLines={1}>
+            {currentTrack.title}
+          </Text>
+          <Text style={styles.subtitle} numberOfLines={1}>
+            Track {currentTrack.trackNumber}
+          </Text>
+        </View>
+
+        {/* Controls */}
+        <View style={styles.controls}>
+          <TouchableOpacity
+            onPress={handlePlayPause}
+            style={styles.controlButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            {isPlaying ? (
+              <Pause size={22} color="#ffffff" fill="#ffffff" />
+            ) : (
+              <Play size={22} color="#ffffff" fill="#ffffff" />
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleNext}
+            style={styles.controlButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <SkipForward size={22} color="#ffffff" />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  wrapper: {
     backgroundColor: '#1a1a1a',
     borderTopWidth: 1,
     borderTopColor: '#242424',
+  },
+  progressTrack: {
+    height: 2,
+    backgroundColor: '#2d2d2d',
+    width: '100%',
+  },
+  progressFill: {
+    height: 2,
+    backgroundColor: '#d946ef',
+  },
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 10,

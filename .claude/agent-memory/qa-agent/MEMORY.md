@@ -5,7 +5,7 @@
 - Mobile: /workspace/mobile (Expo + React Native + Zustand + TanStack Query)
 - Scripts: /workspace/scripts/verify_all.sh
 
-## Test Suite Status (as of Phase 5, 2026-02-27)
+## Test Suite Status (as of Phase 6, 2026-02-27)
 
 ### Backend
 - 55 tests across 9 test files — all pass consistently
@@ -39,17 +39,41 @@
 - album/[id].tsx (272 lines)
 - playlist/[id].tsx (221 lines)
 
+## Phase 6 File Inventory (verified present)
+
+### New in Phase 6 (/workspace/mobile/)
+- stores/playerStore.ts — Zustand store with expo-av Audio.Sound; soundInstance kept
+  outside Zustand to avoid serialisation issues
+- app/player.tsx — full-screen modal player with SeekBar (PanResponder), RepeatIcon,
+  shuffle/repeat controls
+- components/MiniPlayer.tsx — pinned above tab bar via CustomTabBar in _layout.tsx
+
 ## Known Gaps
 - No component-level or screen-level tests in mobile (only authStore tests exist)
-- Recommend adding tests for TrackRow, AlbumCard, ArtistCard, and key screens
+- No tests for playerStore (playTrack, next, previous, shuffle, repeat) — high-value gap
+- Recommend adding tests for TrackRow, AlbumCard, ArtistCard, playerStore, and key screens
 
 ## Lint / Type Check History
 - Phase 5: TypeScript (tsc --noEmit) passed with zero errors
 - Phase 5: ESLint passed with zero warnings or errors
+- Phase 6: TypeScript (tsc --noEmit) passed with zero errors
+- Phase 6: ESLint passed with zero warnings or errors
 - pyproject.toml warns about deprecated `tool.uv.dev-dependencies` — not a blocker
 
 ## Architecture Notes
 - Backend enforces routes -> services -> models layering (verified in tests)
 - All models use UUID PKs (verified in test fixtures)
 - Audio streaming via presigned R2 URLs — never proxied through backend
+- playerStore fetches presigned URL via apiGet(/api/v1/tracks/{id}/stream) then passes
+  the URL directly to Audio.Sound.createAsync — no backend byte proxying
+- soundInstance is a module-level variable (not Zustand state) to prevent serialisation
 - Standard API envelope: { data, error, meta: { page, total } }
+
+## Player-Specific Patterns
+- unloadCurrentSound() called before every new createAsync (no memory leaks)
+- On track load error: set isLoading=false + call next() to skip
+- onPlaybackStatusUpdate fires recordListenHistory + next() on didJustFinish
+- repeat='one' reuses currentIndex; repeat='all' wraps; no repeat stops at end
+- previous() restarts track if positionMs > 3000ms (Spotify-style)
+- SeekBar uses PanResponder with onLayout to get track width for ratio math
+- MiniPlayer returns null when currentTrack is null (conditional render)
