@@ -1,5 +1,5 @@
-import { View, StyleSheet, type ViewStyle } from 'react-native';
-import { useEffect, useRef } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -11,28 +11,23 @@ import Animated, {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface SkeletonProps {
-  width?: number | `${number}%`;
+  width?: number | string;
   height?: number;
   borderRadius?: number;
-  style?: ViewStyle;
+  className?: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function Skeleton({ width, height = 16, borderRadius = 8, style }: SkeletonProps) {
+export function Skeleton({ width, height = 16, borderRadius = 8 }: SkeletonProps) {
   const opacity = useSharedValue(1);
 
-  const isFirstRender = useRef(true);
-
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      opacity.value = withRepeat(
-        withTiming(0.4, { duration: 800, easing: Easing.inOut(Easing.ease) }),
-        -1,
-        true,
-      );
-    }
+    opacity.value = withRepeat(
+      withTiming(0.4, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
   }, [opacity]);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -43,9 +38,8 @@ export function Skeleton({ width, height = 16, borderRadius = 8, style }: Skelet
     <Animated.View
       style={[
         styles.skeleton,
-        { width: width ?? '100%', height, borderRadius },
+        { width: (width ?? '100%') as number | `${number}%`, height, borderRadius },
         animatedStyle,
-        style,
       ]}
     />
   );
@@ -59,7 +53,7 @@ export function TrackRowSkeleton() {
       <Skeleton width={48} height={48} borderRadius={4} />
       <View style={styles.trackRowInfo}>
         <Skeleton width="70%" height={14} />
-        <Skeleton width="45%" height={12} style={styles.trackRowSubtitle} />
+        <Skeleton width="45%" height={12} />
       </View>
     </View>
   );
@@ -69,8 +63,20 @@ export function AlbumCardSkeleton() {
   return (
     <View style={styles.albumCard}>
       <Skeleton width={160} height={160} borderRadius={8} />
-      <Skeleton width={120} height={14} style={styles.albumCardTitle} />
-      <Skeleton width={80} height={12} style={styles.albumCardSubtitle} />
+      <View style={styles.albumCardText}>
+        <Skeleton width={120} height={14} />
+      </View>
+    </View>
+  );
+}
+
+export function ArtistCardSkeleton() {
+  return (
+    <View style={styles.artistCard}>
+      <Skeleton width={120} height={120} borderRadius={9999} />
+      <View style={styles.artistCardText}>
+        <Skeleton width={80} height={12} />
+      </View>
     </View>
   );
 }
@@ -92,17 +98,21 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 6,
   },
-  trackRowSubtitle: {
-    marginTop: 2,
-  },
   albumCard: {
     width: 160,
     marginRight: 16,
   },
-  albumCardTitle: {
+  albumCardText: {
     marginTop: 8,
+    gap: 4,
   },
-  albumCardSubtitle: {
-    marginTop: 4,
+  artistCard: {
+    width: 120,
+    alignItems: 'center',
+    marginRight: 16,
+    gap: 8,
+  },
+  artistCardText: {
+    alignItems: 'center',
   },
 });

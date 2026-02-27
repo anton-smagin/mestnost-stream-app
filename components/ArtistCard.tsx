@@ -1,30 +1,34 @@
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { useRouter } from 'expo-router';
 import { type Artist } from '@/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ArtistCardProps {
   artist: Artist;
-  onPress: (artist: Artist) => void;
-  size?: number;
 }
+
+const CARD_SIZE = 120;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ArtistCard({ artist, onPress, size = 120 }: ArtistCardProps) {
+export function ArtistCard({ artist }: ArtistCardProps) {
+  const router = useRouter();
+
+  const handlePress = () => {
+    router.push(`/artist/${artist.slug}`);
+  };
+
   return (
     <TouchableOpacity
-      style={[styles.container, { width: size }]}
-      onPress={() => onPress(artist)}
+      style={styles.container}
+      onPress={handlePress}
       activeOpacity={0.8}
     >
       {artist.imageUrl ? (
-        <Image
-          source={{ uri: artist.imageUrl }}
-          style={[styles.image, { width: size, height: size }]}
-        />
+        <Image source={{ uri: artist.imageUrl }} style={styles.image} />
       ) : (
-        <View style={[styles.image, styles.imagePlaceholder, { width: size, height: size }]}>
+        <View style={[styles.image, styles.imagePlaceholder]}>
           <Text style={styles.placeholderInitial}>
             {artist.name.charAt(0).toUpperCase()}
           </Text>
@@ -44,8 +48,11 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     gap: 6,
+    width: CARD_SIZE,
   },
   image: {
+    width: CARD_SIZE,
+    height: CARD_SIZE,
     borderRadius: 9999,
   },
   imagePlaceholder: {

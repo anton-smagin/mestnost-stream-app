@@ -1,30 +1,44 @@
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { useRouter } from 'expo-router';
 import { type Album } from '@/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AlbumCardProps {
   album: Album;
-  onPress: (album: Album) => void;
-  size?: number;
+  size?: 'small' | 'medium';
 }
+
+const SIZE_MAP = {
+  small: 120,
+  medium: 160,
+} as const;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function AlbumCard({ album, onPress, size = 160 }: AlbumCardProps) {
+export function AlbumCard({ album, size = 'medium' }: AlbumCardProps) {
+  const router = useRouter();
+  const dimension = SIZE_MAP[size];
+
+  const handlePress = () => {
+    router.push(`/album/${album.id}`);
+  };
+
   return (
     <TouchableOpacity
-      style={[styles.container, { width: size }]}
-      onPress={() => onPress(album)}
+      style={[styles.container, { width: dimension }]}
+      onPress={handlePress}
       activeOpacity={0.8}
     >
       {album.coverImageUrl ? (
         <Image
           source={{ uri: album.coverImageUrl }}
-          style={[styles.artwork, { width: size, height: size }]}
+          style={[styles.artwork, { width: dimension, height: dimension }]}
         />
       ) : (
-        <View style={[styles.artwork, styles.artworkPlaceholder, { width: size, height: size }]} />
+        <View
+          style={[styles.artwork, styles.artworkPlaceholder, { width: dimension, height: dimension }]}
+        />
       )}
       <Text style={styles.title} numberOfLines={2}>
         {album.title}
