@@ -13,6 +13,10 @@ import { type Track } from '@/types';
 interface TrackRowProps {
   track: Track;
   index?: number;
+  /** Optional cover art URL to display alongside the track */
+  coverImageUrl?: string | null;
+  /** Optional artist name for the subtitle */
+  artistName?: string | null;
   onPress: (track: Track) => void;
   onMorePress?: (track: Track) => void;
   isActive?: boolean;
@@ -20,18 +24,23 @@ interface TrackRowProps {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatDuration(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+function formatDuration(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function TrackRow({ track, index, onPress, onMorePress, isActive = false }: TrackRowProps) {
-  const coverUrl = track.album?.coverUrl ?? null;
-
+export function TrackRow({
+  track,
+  index,
+  coverImageUrl,
+  artistName,
+  onPress,
+  onMorePress,
+  isActive = false,
+}: TrackRowProps) {
   return (
     <TouchableOpacity
       style={styles.container}
@@ -39,8 +48,8 @@ export function TrackRow({ track, index, onPress, onMorePress, isActive = false 
       activeOpacity={0.7}
     >
       <View style={styles.artworkWrapper}>
-        {coverUrl ? (
-          <Image source={{ uri: coverUrl }} style={styles.artwork} />
+        {coverImageUrl ? (
+          <Image source={{ uri: coverImageUrl }} style={styles.artwork} />
         ) : (
           <View style={[styles.artwork, styles.artworkPlaceholder]}>
             {index !== undefined && (
@@ -57,12 +66,16 @@ export function TrackRow({ track, index, onPress, onMorePress, isActive = false 
         >
           {track.title}
         </Text>
-        <Text style={styles.artist} numberOfLines={1}>
-          {track.artist?.name ?? 'Unknown Artist'}
-        </Text>
+        {artistName ? (
+          <Text style={styles.artist} numberOfLines={1}>
+            {artistName}
+          </Text>
+        ) : null}
       </View>
 
-      <Text style={styles.duration}>{formatDuration(track.durationMs)}</Text>
+      <Text style={styles.duration}>
+        {formatDuration(track.durationSeconds)}
+      </Text>
 
       {onMorePress && (
         <TouchableOpacity

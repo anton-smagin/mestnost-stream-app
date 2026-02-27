@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Play, Pause, SkipForward } from 'lucide-react-native';
 import { usePlayerStore } from '@/stores/playerStore';
@@ -27,28 +27,20 @@ export function MiniPlayer() {
     router.push('/player');
   };
 
-  const coverUrl = currentTrack.album?.coverUrl ?? null;
-
   return (
     <TouchableOpacity
       style={styles.container}
       onPress={handleOpenPlayer}
       activeOpacity={0.9}
     >
-      <View style={styles.artworkContainer}>
-        {coverUrl ? (
-          <Image source={{ uri: coverUrl }} style={styles.artwork} />
-        ) : (
-          <View style={[styles.artwork, styles.artworkPlaceholder]} />
-        )}
-      </View>
+      <View style={[styles.artwork, styles.artworkPlaceholder]} />
 
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={1}>
           {currentTrack.title}
         </Text>
-        <Text style={styles.artist} numberOfLines={1}>
-          {currentTrack.artist?.name ?? 'Unknown Artist'}
+        <Text style={styles.subtitle} numberOfLines={1}>
+          Track {currentTrack.trackNumber}
         </Text>
       </View>
 
@@ -82,13 +74,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 10,
   },
-  artworkContainer: {
-    flexShrink: 0,
-  },
   artwork: {
     width: 44,
     height: 44,
     borderRadius: 4,
+    flexShrink: 0,
   },
   artworkPlaceholder: {
     backgroundColor: '#2d2d2d',
@@ -102,7 +92,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ffffff',
   },
-  artist: {
+  subtitle: {
     fontSize: 12,
     color: '#9ca3af',
   },

@@ -18,9 +18,9 @@ export function AlbumCard({ album, onPress, size = 160 }: AlbumCardProps) {
       onPress={() => onPress(album)}
       activeOpacity={0.8}
     >
-      {album.coverUrl ? (
+      {album.coverImageUrl ? (
         <Image
-          source={{ uri: album.coverUrl }}
+          source={{ uri: album.coverImageUrl }}
           style={[styles.artwork, { width: size, height: size }]}
         />
       ) : (
@@ -29,11 +29,6 @@ export function AlbumCard({ album, onPress, size = 160 }: AlbumCardProps) {
       <Text style={styles.title} numberOfLines={2}>
         {album.title}
       </Text>
-      {album.artist && (
-        <Text style={styles.artist} numberOfLines={1}>
-          {album.artist.name}
-        </Text>
-      )}
     </TouchableOpacity>
   );
 }
@@ -55,9 +50,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ffffff',
     lineHeight: 18,
-  },
-  artist: {
-    fontSize: 12,
-    color: '#9ca3af',
   },
 });

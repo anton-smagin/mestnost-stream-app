@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { Audio } from 'expo-av';
 import { type Track, type RepeatMode } from '@/types';
+import { apiGet } from '@/services/api';
+import { type StreamUrlResponse } from '@/types';
 
 // ─── Internal Audio Instance ─────────────────────────────────────────────────
 
@@ -15,6 +17,12 @@ async function unloadCurrentSound(): Promise<void> {
     }
     soundInstance = null;
   }
+}
+
+async function fetchStreamUrl(trackId: string): Promise<string> {
+  const response = await apiGet<StreamUrlResponse>(`/api/v1/tracks/${trackId}/stream`);
+  if (!response.data?.url) throw new Error('Stream URL not available');
+  return response.data.url;
 }
 
 // ─── State Shape ─────────────────────────────────────────────────────────────
@@ -72,20 +80,17 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
     await unloadCurrentSound();
 
-    if (!track.streamUrl) {
-      console.warn('Track has no stream URL:', track.id);
-      set({ isLoading: false });
-      return;
-    }
-
     try {
+      // Fetch presigned stream URL from the backend
+      const streamUrl = await fetchStreamUrl(track.id);
+
       await Audio.setAudioModeAsync({
         staysActiveInBackground: true,
         playsInSilentModeIOS: true,
       });
 
       const { sound, status } = await Audio.Sound.createAsync(
-        { uri: track.streamUrl },
+        { uri: streamUrl },
         { shouldPlay: true },
         (playbackStatus) => {
           if (!playbackStatus.isLoaded) return;
@@ -95,7 +100,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
             isPlaying: playbackStatus.isPlaying,
           });
           if (playbackStatus.didJustFinish) {
-            get().next();
+            void get().next();
           }
         },
       );
@@ -111,7 +116,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       console.error('Failed to load track:', error);
       set({ isLoading: false, isPlaying: false });
       // Attempt to advance to next track on error
-      get().next();
+      void get().next();
     }
   },
 

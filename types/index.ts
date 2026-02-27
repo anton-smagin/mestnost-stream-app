@@ -6,72 +6,117 @@ export interface ApiMeta {
 }
 
 export interface ApiResponse<T> {
-  data: T;
+  data: T | null;
   error: string | null;
-  meta: ApiMeta;
+  meta: ApiMeta | null;
 }
 
 // ─── Domain Models ──────────────────────────────────────────────────────────
 
+/**
+ * Artist as returned by GET /api/v1/artists/ (list — no bio)
+ * and GET /api/v1/artists/{slug} (detail — includes bio and albums)
+ */
 export interface Artist {
   id: string;
   name: string;
   slug: string;
-  bio: string | null;
+  bio?: string | null;
   imageUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
+  albums?: Album[];
+  createdAt?: string;
 }
 
 export interface Album {
   id: string;
   title: string;
+  slug: string;
   artistId: string;
-  artist?: Artist;
-  coverUrl: string | null;
+  coverImageUrl: string | null;
   releaseDate: string | null;
-  createdAt: string;
-  updatedAt: string;
+  tracks?: TrackSummary[];
+  createdAt?: string;
 }
 
+/**
+ * Minimal track shape embedded inside Album responses.
+ * Does NOT include file_key or stream URL.
+ */
+export interface TrackSummary {
+  id: string;
+  title: string;
+  slug: string;
+  trackNumber: number;
+  durationSeconds: number;
+}
+
+/**
+ * Full track as returned by GET /api/v1/tracks/{id}
+ */
 export interface Track {
   id: string;
   title: string;
-  albumId: string;
-  album?: Album;
-  artistId: string;
-  artist?: Artist;
+  slug: string;
   trackNumber: number;
-  durationMs: number;
-  streamUrl: string | null;
+  durationSeconds: number;
+  albumId: string;
+  fileKey: string;
   createdAt: string;
-  updatedAt: string;
-}
-
-export interface Playlist {
-  id: string;
-  title: string;
-  description: string | null;
-  coverUrl: string | null;
-  userId: string;
-  tracks?: Track[];
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface User {
   id: string;
   email: string;
   displayName: string | null;
-  avatarUrl: string | null;
   createdAt: string;
+}
+
+export interface Playlist {
+  id: string;
+  name: string;
+  isPublic: boolean;
+  tracks?: PlaylistTrackEntry[];
+  createdAt: string;
+}
+
+// ─── Compound / Nested Types ─────────────────────────────────────────────────
+
+export interface PlaylistTrackEntry {
+  id: string;
+  track: TrackSummary;
+  position: number;
+}
+
+export interface ListenHistoryEntry {
+  id: string;
+  track: TrackSummary;
+  listenedAt: string;
+}
+
+export interface LikeEntry {
+  id: string;
+  track: TrackSummary;
+  createdAt: string;
+}
+
+export interface SearchResults {
+  artists: Artist[];
+  albums: Album[];
+  tracks: TrackSummary[];
+}
+
+export interface StreamUrlResponse {
+  url: string;
 }
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
-export interface AuthTokens {
+/**
+ * Response from POST /api/v1/auth/login
+ */
+export interface TokenResponse {
   accessToken: string;
-  refreshToken: string;
+  tokenType: string;
 }
 
 export interface LoginCredentials {

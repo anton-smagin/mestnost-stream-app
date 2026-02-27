@@ -1,11 +1,11 @@
 import { useAuthStore } from '@/stores/authStore';
-import { type User, type AuthTokens } from '@/types';
+import { type User } from '@/types';
 
 // Reset Zustand store state between tests
 beforeEach(() => {
   useAuthStore.setState({
     user: null,
-    tokens: null,
+    token: null,
     isAuthenticated: false,
   });
 });
@@ -14,7 +14,7 @@ describe('authStore', () => {
   it('should initialize with empty state', () => {
     const state = useAuthStore.getState();
     expect(state.user).toBeNull();
-    expect(state.tokens).toBeNull();
+    expect(state.token).toBeNull();
     expect(state.isAuthenticated).toBe(false);
   });
 
@@ -23,20 +23,14 @@ describe('authStore', () => {
       id: 'user-1',
       email: 'test@example.com',
       displayName: 'Test User',
-      avatarUrl: null,
       createdAt: new Date().toISOString(),
     };
 
-    const mockTokens: AuthTokens = {
-      accessToken: 'access-token',
-      refreshToken: 'refresh-token',
-    };
-
-    useAuthStore.getState().setAuth(mockUser, mockTokens);
+    useAuthStore.getState().setAuth('access-token', mockUser);
 
     const state = useAuthStore.getState();
     expect(state.user).toEqual(mockUser);
-    expect(state.tokens).toEqual(mockTokens);
+    expect(state.token).toBe('access-token');
     expect(state.isAuthenticated).toBe(true);
   });
 
@@ -45,21 +39,15 @@ describe('authStore', () => {
       id: 'user-1',
       email: 'test@example.com',
       displayName: 'Test User',
-      avatarUrl: null,
       createdAt: new Date().toISOString(),
     };
 
-    const mockTokens: AuthTokens = {
-      accessToken: 'access-token',
-      refreshToken: 'refresh-token',
-    };
-
-    useAuthStore.getState().setAuth(mockUser, mockTokens);
+    useAuthStore.getState().setAuth('access-token', mockUser);
     useAuthStore.getState().clearAuth();
 
     const state = useAuthStore.getState();
     expect(state.user).toBeNull();
-    expect(state.tokens).toBeNull();
+    expect(state.token).toBeNull();
     expect(state.isAuthenticated).toBe(false);
   });
 
@@ -68,20 +56,36 @@ describe('authStore', () => {
       id: 'user-1',
       email: 'test@example.com',
       displayName: 'Test User',
-      avatarUrl: null,
       createdAt: new Date().toISOString(),
     };
 
-    const mockTokens: AuthTokens = {
-      accessToken: 'access-token',
-      refreshToken: 'refresh-token',
-    };
-
-    useAuthStore.getState().setAuth(mockUser, mockTokens);
+    useAuthStore.getState().setAuth('access-token', mockUser);
     useAuthStore.getState().updateUser({ displayName: 'Updated Name' });
 
     const state = useAuthStore.getState();
     expect(state.user?.displayName).toBe('Updated Name');
     expect(state.user?.email).toBe('test@example.com');
+  });
+
+  it('should set token independently', () => {
+    useAuthStore.getState().setToken('new-token');
+
+    const state = useAuthStore.getState();
+    expect(state.token).toBe('new-token');
+    expect(state.isAuthenticated).toBe(true);
+  });
+
+  it('should set user independently', () => {
+    const mockUser: User = {
+      id: 'user-2',
+      email: 'other@example.com',
+      displayName: null,
+      createdAt: new Date().toISOString(),
+    };
+
+    useAuthStore.getState().setUser(mockUser);
+
+    const state = useAuthStore.getState();
+    expect(state.user).toEqual(mockUser);
   });
 });

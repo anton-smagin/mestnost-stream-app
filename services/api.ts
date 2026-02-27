@@ -45,17 +45,18 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiResponse<unknown>>) => {
-    const message =
-      error.response?.data?.error ??
-      error.message ??
-      'An unexpected error occurred';
+    const apiError = error.response?.data?.error;
+    const message = apiError ?? error.message ?? 'An unexpected error occurred';
     return Promise.reject(new Error(message));
   },
 );
 
-// ─── Helper ──────────────────────────────────────────────────────────────────
+// ─── Helper Functions ────────────────────────────────────────────────────────
 
-export async function apiGet<T>(path: string, params?: Record<string, unknown>): Promise<ApiResponse<T>> {
+export async function apiGet<T>(
+  path: string,
+  params?: Record<string, unknown>,
+): Promise<ApiResponse<T>> {
   const response = await apiClient.get<ApiResponse<T>>(path, { params });
   return response.data;
 }
@@ -70,7 +71,14 @@ export async function apiPut<T>(path: string, body?: unknown): Promise<ApiRespon
   return response.data;
 }
 
-export async function apiDelete<T>(path: string): Promise<ApiResponse<T>> {
+/**
+ * apiDelete handles both 200-with-body and 204-No-Content responses.
+ * For 204 responses the body is empty, so we return a synthetic envelope.
+ */
+export async function apiDelete<T = void>(path: string): Promise<ApiResponse<T>> {
   const response = await apiClient.delete<ApiResponse<T>>(path);
+  if (response.status === 204) {
+    return { data: null, error: null, meta: null } as ApiResponse<T>;
+  }
   return response.data;
 }

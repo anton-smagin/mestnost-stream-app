@@ -1,16 +1,18 @@
 import { create } from 'zustand';
-import { type User, type AuthTokens } from '@/types';
+import { type User } from '@/types';
 import { setAccessToken } from '@/services/api';
 
 // ─── State Shape ─────────────────────────────────────────────────────────────
 
 interface AuthStore {
   user: User | null;
-  tokens: AuthTokens | null;
+  token: string | null;
   isAuthenticated: boolean;
 
   // Actions
-  setAuth: (user: User, tokens: AuthTokens) => void;
+  setToken: (token: string) => void;
+  setUser: (user: User) => void;
+  setAuth: (token: string, user: User) => void;
   clearAuth: () => void;
   updateUser: (updates: Partial<User>) => void;
 }
@@ -19,17 +21,26 @@ interface AuthStore {
 
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
-  tokens: null,
+  token: null,
   isAuthenticated: false,
 
-  setAuth: (user, tokens) => {
-    setAccessToken(tokens.accessToken);
-    set({ user, tokens, isAuthenticated: true });
+  setToken: (token) => {
+    setAccessToken(token);
+    set({ token, isAuthenticated: true });
+  },
+
+  setUser: (user) => {
+    set({ user });
+  },
+
+  setAuth: (token, user) => {
+    setAccessToken(token);
+    set({ token, user, isAuthenticated: true });
   },
 
   clearAuth: () => {
     setAccessToken(null);
-    set({ user: null, tokens: null, isAuthenticated: false });
+    set({ user: null, token: null, isAuthenticated: false });
   },
 
   updateUser: (updates) =>
